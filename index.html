@@ -2,379 +2,177 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Trip 상황 보고 (모바일 요약)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trip 상황 공유</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-    <!-- pako.js for Gzip decompression -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
-        body {
-            font-family: 'Noto Sans KR', sans-serif;
-            background-color: #111827;
-        }
-        .mobile-container {
-            max-width: 420px;
-            min-height: 100vh;
-            margin: 0 auto;
-            background-color: #F9FAFB;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        }
-        .header-card {
-            background: linear-gradient(135deg, #DC2626 0%, #991B1B 100%);
-            color: white;
-            border-bottom-left-radius: 2rem;
-            border-bottom-right-radius: 2rem;
-        }
-        .info-card {
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            opacity: 1;
-            transform: translateY(0);
-        }
-        .info-card.hidden-initial {
-            opacity: 0;
-            transform: translateY(20px);
-            height: 0;
-            padding-top: 0;
-            padding-bottom: 0;
-            margin-top: 0;
-            margin-bottom: 0;
-            overflow: hidden;
-        }
-        .timeline-item::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background-color: #D1D5DB;
-            border: 2px solid #F9FAFB;
-        }
-        .timeline-item.critical::before { background-color: #EF4444; }
-        .timeline-item:not(:last-child)::after {
-            content: '';
-            position: absolute;
-            left: 5px;
-            top: 50%;
-            bottom: -50%;
-            width: 2px;
-            background-color: #E5E7EB;
-        }
-        .placeholder-glow { animation: glow 1.5s ease-in-out infinite; }
-        @keyframes glow { 50% { opacity: 0.5; } }
-        .fade-in { animation: fadeIn 0.8s ease-out forwards; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .slide-up-fade-in {
-            opacity: 0;
-            animation: slideUpFadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-        }
-        @keyframes slideUpFadeIn {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .reasoning-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.5rem;
-            background-color: #F3F4F6;
-            border-radius: 0.5rem;
-            font-size: 0.8rem;
-            cursor: pointer;
-            transition: background-color 0.2s;
-        }
-        .reasoning-item:hover { background-color: #E5E7EB; }
-        .reasoning-item i { color: #4B5563; }
-        
-        /* Modal Styles */
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.6);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-            opacity: 0;
-            visibility: hidden;
-            transition: opacity 0.3s ease;
-        }
-        .modal-overlay.show { opacity: 1; visibility: visible; }
-        .modal-content {
-            background: white;
-            border-radius: 1rem;
-            padding: 1.5rem;
-            width: 90%;
-            max-width: 400px;
-            max-height: 80vh;
-            overflow-y: auto;
-            transform: scale(0.95);
-            transition: transform 0.3s ease;
-        }
-        .modal-overlay.show .modal-content { transform: scale(1); }
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&display=swap');
+        body { font-family: 'Noto Sans KR', sans-serif; background-color: #f0f2f5; }
+        .card { background-color: white; border-radius: 0.75rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1); }
+        .fade-in { animation: fadeIn 0.5s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .skeleton { background-color: #e5e7eb; border-radius: 0.25rem; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
     </style>
 </head>
-<body>
-    <div class="mobile-container">
-        <div id="content-area" class="p-6 space-y-6">
-            <!-- Content will be dynamically generated by JavaScript -->
-            <div class="text-center p-10">
-                <i class="fas fa-link text-4xl text-gray-300 mb-4"></i>
-                <h2 class="font-bold text-gray-700">마법 링크 데이터 로딩 중...</h2>
-                <p class="text-sm text-gray-500 mt-2">URL에 공유된 데이터가 있는지 확인하고 있습니다. 링크가 올바른지 확인해주세요.</p>
+<body class="p-4">
+    <div class="max-w-lg mx-auto space-y-4">
+
+        <!-- 1단계: 최초 상황 정보 -->
+        <div id="stage1-card" class="card p-5 fade-in">
+            <header class="text-center border-b pb-4 mb-4">
+                <h1 id="summary" class="text-xl font-bold text-gray-800 flex items-center justify-center">
+                    <i class="fas fa-bolt mr-3 text-red-500"></i>
+                    <span>-</span>
+                </h1>
+                <p id="initialReportTime" class="text-sm text-gray-500 mt-1">-</p>
+            </header>
+            <div>
+                <h2 class="font-semibold text-gray-700 mb-2">담당자</h2>
+                <p id="personnel" class="text-gray-600 bg-gray-50 p-2 rounded-md">-</p>
             </div>
         </div>
+
+        <!-- 2단계: AI 분석 결과 (초기에는 숨겨져 있음) -->
+        <div id="stage2-card" class="card p-5 hidden">
+            <h2 class="text-lg font-bold text-gray-800 mb-3 border-b pb-2 flex items-center">
+                <i class="fas fa-brain mr-3 text-blue-500"></i>AI 분석 결과
+            </h2>
+            <div class="space-y-3 text-gray-700">
+                <div>
+                    <p class="text-sm font-semibold">추정 원인 (신뢰도 <span id="confidence" class="font-bold text-green-600">-%</span>)</p>
+                    <p id="cause" class="font-bold text-lg text-red-600">-</p>
+                </div>
+                <div>
+                    <p class="text-sm font-semibold">권장 조치 (1순위)</p>
+                    <p id="recommendation" class="bg-blue-50 p-2 rounded-md">-</p>
+                </div>
+                <div>
+                    <p class="text-sm font-semibold">유사 과거 사례</p>
+                    <p id="similar-case" class="text-sm text-gray-600">-</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 로딩 스켈레톤 UI -->
+        <div id="loading-card" class="card p-5 fade-in">
+            <div class="space-y-4">
+                <div class="skeleton h-6 w-3/4 mx-auto"></div>
+                <div class="skeleton h-4 w-1/2 mx-auto"></div>
+                <div class="skeleton h-10 w-full mt-4"></div>
+                <div class="skeleton h-16 w-full mt-2"></div>
+            </div>
+        </div>
+
     </div>
 
-    <!-- 상세 정보 팝업 모달 -->
-    <div id="detailModal" class="modal-overlay">
-        <div class="modal-content">
-            <div class="flex justify-between items-center mb-4">
-                <h3 id="modal-title" class="font-bold text-lg"></h3>
-                <button onclick="closeModal()" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
-            </div>
-            <div id="modal-content" class="text-sm text-gray-700"></div>
-        </div>
-    </div>
+    <!-- Firebase SDK 추가 -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <script>
-        let fullData = null;
-        let modalChart;
-
-        const DOM = {
-            contentArea: document.getElementById('content-area'),
-            modal: document.getElementById('detailModal'),
-            modalTitle: document.getElementById('modal-title'),
-            modalContent: document.getElementById('modal-content'),
+        // ❗ 중요: 여기에 본인의 Firebase 프로젝트 구성 정보를 붙여넣으세요.
+        // Firebase 콘솔 > 프로젝트 설정(⚙️) > 일반 > 내 앱 > Firebase SDK 스니펫 > 구성(CDN)
+        const firebaseConfig = {
+            // 여기에 복사한 Firebase 구성 객체를 붙여넣으세요.
+            // 예시:
+            // apiKey: "AIzaSy...",
+            // authDomain: "trip-dashboard-live.firebaseapp.com",
+            // databaseURL: "https://trip-dashboard-live-default-rtdb.firebaseio.com",
+            // projectId: "trip-dashboard-live",
+            // storageBucket: "trip-dashboard-live.appspot.com",
+            // messagingSenderId: "...",
+            // appId: "..."
         };
 
-        // --- Core Logic: Decode and Render ---
-        window.onload = function() {
-            try {
-                const urlParams = new URLSearchParams(window.location.search);
-                const encodedData = urlParams.get('data');
+        // Firebase 앱 초기화
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
 
-                if (!encodedData) {
-                    throw new Error("URL에 'data' 파라미터가 없습니다.");
-                }
+        // 화면 요소
+        const summaryEl = document.getElementById('summary');
+        const initialReportTimeEl = document.getElementById('initialReportTime');
+        const personnelEl = document.getElementById('personnel');
+        const stage1Card = document.getElementById('stage1-card');
+        const stage2Card = document.getElementById('stage2-card');
+        const loadingCard = document.getElementById('loading-card');
+        const confidenceEl = document.getElementById('confidence');
+        const causeEl = document.getElementById('cause');
+        const recommendationEl = document.getElementById('recommendation');
+        const similarCaseEl = document.getElementById('similar-case');
 
-                // 1. URL-Safe Base64 Decode
-                const base64 = encodedData.replace(/-/g, '+').replace(/_/g, '/');
-                const padding = '='.repeat((4 - base64.length % 4) % 4);
-                const binaryString = atob(base64 + padding);
+        // 페이지가 로드될 때 실행되는 메인 함수
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. URL에서 tripId 가져오기
+            const params = new URLSearchParams(window.location.search);
+            const tripId = params.get('tripId');
+
+            if (!tripId) {
+                showError("잘못된 접근입니다. 공유받은 URL을 확인해주세요.");
+                return;
+            }
+
+            // 2. 해당 tripId의 '우편함'을 실시간으로 구독(감시) 시작
+            const tripRef = database.ref(`trips/${tripId}`);
+            tripRef.on('value', (snapshot) => {
+                const data = snapshot.val();
                 
-                // 2. Convert to Uint8Array
-                const bytes = new Uint8Array(binaryString.length);
-                for (let i = 0; i < binaryString.length; i++) {
-                    bytes[i] = binaryString.charCodeAt(i);
+                if (!data) {
+                    showError("Trip 정보를 찾을 수 없습니다.");
+                    return;
                 }
 
-                // 3. Gzip Decompress
-                const decompressed = pako.ungzip(bytes, { to: 'string' });
+                console.log("📬 새로운 데이터 수신:", data);
+                updateUI(data);
+            });
+        });
 
-                // 4. Parse JSON
-                fullData = JSON.parse(decompressed);
+        // 데이터를 기반으로 UI를 업데이트하는 함수
+        function updateUI(data) {
+            loadingCard.classList.add('hidden');
+            stage1Card.classList.remove('hidden');
 
-                // 5. Render UI
-                renderUI();
-
-            } catch (error) {
-                console.error("Magic Link 처리 오류:", error);
-                DOM.contentArea.innerHTML = `
-                    <div class="text-center p-10 bg-red-50 rounded-lg">
-                        <i class="fas fa-exclamation-triangle text-4xl text-red-400 mb-4"></i>
-                        <h2 class="font-bold text-red-700">데이터를 불러올 수 없습니다.</h2>
-                        <p class="text-sm text-red-600 mt-2">링크가 손상되었거나 데이터가 올바르지 않습니다. 담당자에게 문의해주세요.</p>
-                        <p class="text-xs text-gray-500 mt-4">오류: ${error.message}</p>
-                    </div>`;
-            }
-        };
-
-        function renderUI() {
-            if (!fullData) return;
-
-            const { stage1, stage2 } = fullData;
-
-            let stage2Html = '';
-            if (stage2) {
-                stage2Html = `
-                    <div id="analysis-result" class="info-card bg-white p-5 rounded-xl shadow-md mt-6 slide-up-fade-in" style="animation-delay: 0.3s;">
-                        <h2 class="font-bold text-lg text-blue-800 mb-3"><i class="fas fa-brain mr-2 text-blue-500"></i>AI 최종 분석 결과</h2>
-                        <div class="bg-blue-50 p-4 rounded-lg">
-                            <p class="text-sm text-blue-700 font-semibold">추정 원인</p>
-                            <p class="font-bold text-xl text-blue-900 mt-1">${stage2.aiCause}</p>
-                            <p class="text-xs text-blue-600 mt-2">${stage2.aiCauseNarrative}</p>
-                        </div>
-                        <div class="text-center mt-4">
-                            <p class="text-sm text-green-700 font-semibold">종합 신뢰도</p>
-                            <p class="font-black text-5xl text-green-600">${stage2.aiConfidence}%</p>
-                        </div>
-                        <div class="mt-5 border-t pt-4">
-                            <h3 class="text-sm font-semibold text-gray-600 mb-2">판단 근거 (클릭하여 상세보기)</h3>
-                            <div class="space-y-2">
-                                ${stage2.reasoning.map(item => `
-                                    <div class="reasoning-item" onclick="showModal('${item.type}')">
-                                        <i class="${item.icon}"></i>
-                                        <span>${item.text}</span>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="info-card bg-white p-5 rounded-xl shadow-md mt-6 slide-up-fade-in" style="animation-delay: 0.6s;">
-                        <h2 class="font-bold text-lg text-gray-800 mb-3"><i class="fas fa-list-ol mr-2 text-gray-400"></i>Top 3 원인 후보</h2>
-                        <div class="space-y-2 text-sm">
-                            ${stage2.top3.map(item => `
-                                <div class="flex items-center justify-between p-2 rounded-lg ${item.rank === 1 ? 'bg-gray-100' : ''}">
-                                    <span class="font-bold ${item.rank === 1 ? 'text-gray-800' : 'text-gray-600'}">${item.rank}. ${item.cause}</span>
-                                    <span class="font-semibold text-xs ${item.rank === 1 ? 'text-gray-600' : 'text-gray-400'}">${item.score}점</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-
-                    <div class="info-card bg-white p-5 rounded-xl shadow-md mt-6 slide-up-fade-in" style="animation-delay: 0.9s;">
-                        <h2 class="font-bold text-lg text-gray-800 mb-3"><i class="fas fa-wrench mr-2 text-gray-400"></i>권장 조치 1순위</h2>
-                        <div class="bg-gray-50 p-3 rounded-lg">
-                            <p class="text-gray-800 text-sm font-bold">${stage2.aiAction}</p>
-                            <p class="text-xs text-gray-500 mt-1">${stage2.aiActionNarrative}</p>
-                        </div>
-                    </div>
-                    
-                    <div class="info-card bg-white p-5 rounded-xl shadow-md mt-6 slide-up-fade-in" style="animation-delay: 1.2s;">
-                        <h2 class="font-bold text-lg text-gray-800 mb-3"><i class="fas fa-chart-line mr-2 text-gray-400"></i>주요 데이터 트렌드</h2>
-                        <div class="h-48"><canvas id="trendChart"></canvas></div>
-                    </div>
-                `;
-            } else {
-                stage2Html = `
-                    <div class="info-card bg-white p-5 rounded-xl shadow-md mt-6 text-center slide-up-fade-in" style="animation-delay: 0.3s;">
-                        <div class="placeholder-glow">
-                            <i class="fas fa-spinner fa-spin text-blue-500 text-2xl mb-3"></i>
-                            <p class="font-bold text-blue-700">운전 근무자가 원인 분석 중입니다...</p>
-                            <p class="text-xs text-gray-500">분석 완료 시 새로운 링크가 전송됩니다.</p>
-                        </div>
-                    </div>`;
+            // 1단계: 최초 상황 정보 업데이트 (항상 표시)
+            if (data.stage1) {
+                summaryEl.textContent = data.stage1.summary;
+                initialReportTimeEl.textContent = `최초 보고: ${new Date(data.stage1.initialReportTime).toLocaleString('ko-KR')}`;
+                personnelEl.textContent = data.stage1.personnel || '지정되지 않음';
             }
 
-            DOM.contentArea.innerHTML = `
-                <div id="stage1-content" class="fade-in">
-                    <div class="header-card p-6 shadow-lg">
-                        <div class="flex items-center gap-4">
-                            <i class="fas fa-bolt fa-2x text-yellow-300"></i>
-                            <div>
-                                <h1 class="text-2xl font-black">${stage1.title}</h1>
-                                <p class="text-sm opacity-80">${stage1.time}</p>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="info-card bg-white p-5 rounded-xl shadow-md mt-6">
-                        <h2 class="font-bold text-lg text-gray-800 mb-3"><i class="fas fa-file-alt mr-2 text-gray-400"></i>운전자 최초 보고</h2>
-                        <p class="text-gray-600 text-sm leading-relaxed">${stage1.operatorReport}</p>
-                    </div>
-
-                    <div class="info-card bg-white p-5 rounded-xl shadow-md mt-6">
-                        <h2 class="font-bold text-lg text-gray-800 mb-4"><i class="fas fa-history mr-2 text-gray-400"></i>핵심 이벤트 타임라인</h2>
-                        <div class="relative space-y-4 pl-4">
-                            ${stage1.timeline.map(item => `
-                                <div class="timeline-item relative pl-6 pb-4 ${item.status}">
-                                    <p class="font-bold text-sm text-gray-700">${item.time}</p>
-                                    <p class="text-xs text-gray-500">${item.event}</p>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                </div>
-                <div id="stage2-content">
-                    ${stage2Html}
-                </div>
-            `;
-            
-            if (stage2 && stage2.chartData) {
-                // Wait for animation to make the canvas visible
-                setTimeout(() => renderChart(stage2.chartData, 'trendChart'), 1200);
-            }
-        }
-        
-        function renderChart(chartData, canvasId) {
-            const ctx = document.getElementById(canvasId)?.getContext('2d');
-            if(!ctx) return;
-
-            const chartOptions = {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    x: {
-                        type: 'time',
-                        time: { unit: 'minute', displayFormats: { minute: 'HH:mm:ss' } },
-                        grid: { display: false },
-                        ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 4, font: { size: 10 } }
-                    },
-                    y: { 
-                        beginAtZero: true,
-                        grid: { color: '#E5E7EB' },
-                        ticks: { font: { size: 10 } }
-                    }
-                },
-                plugins: {
-                    legend: { display: true, position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
-                }
-            };
-            
-            // Re-parse labels to Date objects for Chart.js
-            const parsedChartData = {
-                ...chartData,
-                labels: chartData.labels.map(l => new Date(l))
-            };
-
-            if (canvasId === 'trendChart') {
-                if (trendChart) trendChart.destroy();
-                trendChart = new Chart(ctx, { type: 'line', data: parsedChartData, options: chartOptions });
-            } else if (canvasId === 'modalChart') {
-                if (modalChart) modalChart.destroy();
-                modalChart = new Chart(ctx, { type: 'line', data: parsedChartData, options: chartOptions });
-            }
-        }
-
-        function showModal(reasonType) {
-            if (!fullData || !fullData.stage2) return;
-            const reasonData = fullData.stage2.detailedReasoning[reasonType];
-            if (reasonData) {
-                DOM.modalTitle.textContent = reasonData.title;
+            // 2단계: AI 분석 결과 업데이트 (데이터가 있을 때만 표시)
+            if (data.stage2) {
+                const analysis = data.stage2;
                 
-                if (reasonType === 'data') {
-                    DOM.modalContent.innerHTML = `${reasonData.content}<div class="h-48 mt-4"><canvas id="modalChart"></canvas></div>`;
-                    // Wait for modal to be visible before rendering chart
-                    setTimeout(() => renderChart(reasonData.chartData, 'modalChart'), 50);
-                } else {
-                    DOM.modalContent.innerHTML = reasonData.content;
+                // 신뢰도, 추정 원인, 권장 조치 등 화면에 표시
+                if(analysis.first_hit_analysis && analysis.first_hit_analysis.first_hit_alarms.length > 0) {
+                    const firstHit = analysis.first_hit_analysis.first_hit_alarms[0];
+                    confidenceEl.textContent = `${firstHit.final_score}%`;
+                    causeEl.textContent = firstHit.message;
+                }
+
+                if(analysis.recommendations && analysis.recommendations.length > 0) {
+                    recommendationEl.textContent = analysis.recommendations[0].content;
+                }
+
+                if(analysis.ai_analysis && analysis.ai_analysis.track1_system_auto.similar_case) {
+                    similarCaseEl.textContent = `'${analysis.ai_analysis.track1_system_auto.similar_case.title}' 사례와 유사`;
                 }
                 
-                DOM.modal.classList.add('show');
+                // 숨겨져 있던 AI 분석 카드 표시
+                stage2Card.classList.remove('hidden');
+                stage2Card.classList.add('fade-in');
             }
         }
 
-        function closeModal() {
-            DOM.modal.classList.remove('show');
-            if (modalChart) {
-                modalChart.destroy();
-                modalChart = null;
-            }
+        // 오류 메시지를 표시하는 함수
+        function showError(message) {
+            loadingCard.classList.add('hidden');
+            stage1Card.classList.remove('hidden');
+            summaryEl.textContent = "오류";
+            personnelEl.innerHTML = `<span class="text-red-500">${message}</span>`;
         }
+
     </script>
 </body>
 </html>
