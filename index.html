@@ -165,18 +165,14 @@ const firebaseConfig = {
   authDomain: "trip-dashboard-live.firebaseapp.com",
   databaseURL: "https://trip-dashboard-live-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "trip-dashboard-live",
-  storageBucket: "trip-dashboard-live.firebasestorage.app",
+  storageBucket: "trip-dashboard-live.appspot.com",
   messagingSenderId: "184042935001",
   appId: "1:184042935001:web:dd5a1ab387ac357223a4c8"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-        };
-
-        // Firebase 앱 초기화
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+// Firebase 앱 초기화 (v8 방식으로 통일)
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
         
         let fullData = null;
         let modalChart;
@@ -311,4 +307,5 @@ const app = initializeApp(firebaseConfig);
     </script>
 </body>
 </html>
+
 
