@@ -154,16 +154,24 @@
 
     <script>
         // ❗ 중요: 여기에 본인의 Firebase 프로젝트 구성 정보를 붙여넣으세요.
-        const firebaseConfig = {
-            // Firebase 콘솔 > 프로젝트 설정(⚙️) > 일반 > 내 앱 > Firebase SDK 스니펫 > 구성(CDN)
-            // 예시:
-            // apiKey: "AIzaSy...",
-            // authDomain: "trip-dashboard-live.firebaseapp.com",
-            // databaseURL: "https://trip-dashboard-live-default-rtdb.firebaseio.com",
-            // projectId: "trip-dashboard-live",
-            // storageBucket: "trip-dashboard-live.appspot.com",
-            // messagingSenderId: "...",
-            // appId: "..."
+        const firebaseConfig = {// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+const firebaseConfig = {
+  apiKey: "AIzaSyCig4FGcPx97EmF7rHLbpcONUCqsh54Hjo",
+  authDomain: "trip-dashboard-live.firebaseapp.com",
+  databaseURL: "https://trip-dashboard-live-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "trip-dashboard-live",
+  storageBucket: "trip-dashboard-live.firebasestorage.app",
+  messagingSenderId: "184042935001",
+  appId: "1:184042935001:web:dd5a1ab387ac357223a4c8"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
         };
 
         // Firebase 앱 초기화
@@ -303,3 +311,4 @@
     </script>
 </body>
 </html>
+
