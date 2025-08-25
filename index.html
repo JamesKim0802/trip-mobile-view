@@ -168,13 +168,13 @@
 
                 <div class="info-card bg-white p-5 rounded-xl shadow-md mt-6 slide-up-fade-in" style="animation-delay: 0.6s;">
                     <h2 class="font-bold text-lg text-gray-800 mb-3"><i class="fas fa-file-alt mr-2 text-gray-400"></i>운전자 최초 보고</h2>
-                    <p class="text-gray-600 text-sm leading-relaxed" id="operator-report">상세한 운전자 보고서가 로드되지 않았습니다.</p>
+                    <p class="text-gray-600 text-sm leading-relaxed" id="operator-report">상세한 운전자 보고서가 아직 제공되지 않았습니다. 담당자가 추가 정보를 수집 중입니다.</p>
                 </div>
 
                 <div class="info-card bg-white p-5 rounded-xl shadow-md mt-6 slide-up-fade-in" style="animation-delay: 0.9s;">
                     <h2 class="font-bold text-lg text-gray-800 mb-4"><i class="fas fa-history mr-2 text-gray-400"></i>핵심 이벤트 타임라인</h2>
                     <div class="relative space-y-4 pl-4" id="event-timeline">
-                        <p class="text-gray-500 text-sm">타임라인 데이터가 로드되지 않았습니다.</p>
+                        <p class="text-gray-500 text-sm">상세한 타임라인이 아직 수집되지 않았습니다.</p>
                     </div>
                 </div>
             </div>
@@ -204,18 +204,18 @@
                     </div>
                     
                     <div class="mt-5 border-t pt-4">
-                        <h3 class="text-sm font-semibold text-gray-600 mb-2">판단 근거 (클릭하여 상세보기)</h3>
+                        <h3 class="text-sm font-semibold text-gray-600 mb-2">판단 근거</h3>
                         <div class="space-y-2" id="ai-reasoning">
                             <!-- 판단 근거 아이템들이 여기에 동적으로 추가됩니다 -->
                         </div>
                     </div>
                 </div>
 
-                <!-- Top 3 원인 후보 -->
-                <div id="top3-candidates" class="info-card bg-white p-5 rounded-xl shadow-md mt-6 hidden-initial">
-                    <h2 class="font-bold text-lg text-gray-800 mb-3"><i class="fas fa-list-ol mr-2 text-gray-400"></i>Top 3 원인 후보</h2>
-                    <div class="space-y-2 text-sm" id="top3-list">
-                        <!-- Top 3 리스트가 여기에 동적으로 추가됩니다 -->
+                <!-- Top 5 알람 후보 -->
+                <div id="top5-alarms" class="info-card bg-white p-5 rounded-xl shadow-md mt-6 hidden-initial">
+                    <h2 class="font-bold text-lg text-gray-800 mb-3"><i class="fas fa-list-ol mr-2 text-gray-400"></i>First Hit 분석 결과</h2>
+                    <div class="space-y-2 text-sm" id="alarm-list">
+                        <!-- 알람 리스트가 여기에 동적으로 추가됩니다 -->
                     </div>
                 </div>
 
@@ -288,8 +288,8 @@
             aiCauseNarrative: document.getElementById('ai-cause-narrative'),
             aiConfidence: document.getElementById('ai-confidence'),
             aiReasoning: document.getElementById('ai-reasoning'),
-            top3Candidates: document.getElementById('top3-candidates'),
-            top3List: document.getElementById('top3-list'),
+            top5Alarms: document.getElementById('top5-alarms'),
+            alarmList: document.getElementById('alarm-list'),
             recommendation: document.getElementById('recommendation'),
             aiAction: document.getElementById('ai-action'),
             aiActionNarrative: document.getElementById('ai-action-narrative'),
@@ -391,11 +391,12 @@
                 new Date(stage1.initialReportTime).toLocaleString('ko-KR') : '시간 정보 없음';
             DOM.personnel.textContent = stage1.personnel || '지정되지 않음';
 
-            // 운전자 보고서 (없으면 기본 메시지)
-            DOM.operatorReport.textContent = stage1.operatorReport || 
-                '상세한 운전자 보고서가 아직 제공되지 않았습니다. 담당자가 추가 정보를 수집 중입니다.';
+            // 운전자 보고서 (Firebase 데이터에 없으므로 기본 메시지 유지)
+            if (stage1.operatorReport) {
+                DOM.operatorReport.textContent = stage1.operatorReport;
+            }
 
-            // 타임라인 (없으면 기본 메시지)
+            // 타임라인 (Firebase 데이터에 없으므로 기본 메시지 유지)
             if (stage1.timeline && stage1.timeline.length > 0) {
                 DOM.eventTimeline.innerHTML = stage1.timeline.map(item => `
                     <div class="timeline-item relative pl-6 pb-4 ${item.status || 'info'}">
@@ -403,8 +404,6 @@
                         <p class="text-xs text-gray-500">${item.event}</p>
                     </div>
                 `).join('');
-            } else {
-                DOM.eventTimeline.innerHTML = '<p class="text-gray-500 text-sm">상세한 타임라인이 아직 수집되지 않았습니다.</p>';
             }
         }
 
@@ -417,52 +416,47 @@
             // AI 분석 결과 표시
             DOM.analysisResult.classList.remove('hidden-initial');
             
-            // AI 원인 분석 (안전한 접근)
-            const firstHit = stage2.first_hit_analysis?.first_hit_alarms?.[0];
-            if (firstHit) {
-                DOM.aiCause.textContent = firstHit.message || '분석 중...';
-                DOM.aiCauseNarrative.textContent = firstHit.narrative || '';
+            // ✅ 실제 Firebase 데이터 구조에 맞춰 수정
+            const estimatedCause = stage2.heroSection?.estimatedCause;
+            const confidence = stage2.heroSection?.confidence;
+
+            if (estimatedCause) {
+                DOM.aiCause.textContent = estimatedCause.primaryCause || '분석 중...';
+                DOM.aiCauseNarrative.textContent = estimatedCause.description || '';
                 
                 // 신뢰도 애니메이션
-                animateScore(firstHit.final_score || 0);
+                if (confidence) {
+                    animateScore(confidence.overall || 0);
+                }
             }
 
-            // 판단 근거 (만약 있다면)
-            if (stage2.reasoning) {
-                DOM.aiReasoning.innerHTML = stage2.reasoning.map((item, index) => `
-                    <div class="reasoning-item slide-up-fade-in" style="animation-delay: ${index * 0.2}s;" onclick="showModal('${item.type}')">
-                        <i class="${item.icon}"></i>
-                        <span>${item.text}</span>
+            // First Hit 알람 리스트
+            if (stage2.first_hit_analysis?.first_hit_alarms) {
+                await new Promise(r => setTimeout(r, 800));
+                DOM.top5Alarms.classList.remove('hidden-initial');
+                DOM.alarmList.innerHTML = stage2.first_hit_analysis.first_hit_alarms.map((alarm, index) => `
+                    <div class="flex items-center justify-between p-2 rounded-lg ${index === 0 ? 'bg-red-100' : 'bg-gray-50'}">
+                        <span class="font-bold ${index === 0 ? 'text-red-800' : 'text-gray-600'}">${index + 1}. ${alarm.alarm_description}</span>
+                        <span class="font-semibold text-xs ${index === 0 ? 'text-red-600' : 'text-gray-400'}">${Math.round(alarm.score)}점</span>
                     </div>
                 `).join('');
             }
 
             // 권장 조치
-            const recommendation = stage2.recommendations?.[0];
-            if (recommendation) {
-                await new Promise(r => setTimeout(r, 800));
-                DOM.recommendation.classList.remove('hidden-initial');
-                DOM.aiAction.textContent = recommendation.content || '조치 방안을 분석 중입니다...';
-                DOM.aiActionNarrative.textContent = recommendation.title || '';
-            }
-
-            // Top 3 후보 (만약 있다면)
-            if (stage2.top3) {
+            const recommendations = stage2.recommendations;
+            if (recommendations && recommendations.length > 0) {
                 await new Promise(r => setTimeout(r, 600));
-                DOM.top3Candidates.classList.remove('hidden-initial');
-                DOM.top3List.innerHTML = stage2.top3.map(item => `
-                    <div class="flex items-center justify-between p-2 rounded-lg ${item.rank === 1 ? 'bg-gray-100' : ''}">
-                        <span class="font-bold ${item.rank === 1 ? 'text-gray-800' : 'text-gray-600'}">${item.rank}. ${item.cause}</span>
-                        <span class="font-semibold text-xs ${item.rank === 1 ? 'text-gray-600' : 'text-gray-400'}">${item.score}점</span>
-                    </div>
-                `).join('');
+                DOM.recommendation.classList.remove('hidden-initial');
+                const firstRecommendation = recommendations[0];
+                DOM.aiAction.textContent = firstRecommendation.content || '조치 방안을 분석 중입니다...';
+                DOM.aiActionNarrative.textContent = firstRecommendation.title || '';
             }
 
-            // 차트 데이터 (만약 있다면)
-            if (stage2.chartData) {
+            // 트렌드 차트 (만약 있다면)
+            if (stage2.analysisEvidence?.trendData) {
                 await new Promise(r => setTimeout(r, 600));
                 DOM.trendChartCard.classList.remove('hidden-initial');
-                renderChart(stage2.chartData, 'trendChart');
+                renderTrendChart(stage2.analysisEvidence.trendData);
             }
         }
 
@@ -479,17 +473,29 @@
             }, 50);
         }
 
-        function renderChart(chartData, canvasId) {
-            const ctx = document.getElementById(canvasId).getContext('2d');
+        function renderTrendChart(trendData) {
+            const ctx = document.getElementById('trendChart').getContext('2d');
+            
+            // trendData 구조에 맞춰 차트 데이터 생성
+            const chartData = {
+                labels: trendData.timePoints || [],
+                datasets: [{
+                    label: '주요 지표',
+                    data: trendData.values || [],
+                    borderColor: '#EF4444',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    fill: true,
+                    tension: 0.2
+                }]
+            };
+
             const chartOptions = {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
                     x: {
-                        type: 'time',
-                        time: { unit: 'minute', displayFormats: { minute: 'HH:mm:ss' } },
                         grid: { display: false },
-                        ticks: { maxRotation: 0, autoSkip: true, maxTicksLimit: 4, font: { size: 10 } }
+                        ticks: { font: { size: 10 } }
                     },
                     y: { 
                         beginAtZero: true,
@@ -502,34 +508,14 @@
                 }
             };
 
-            if (canvasId === 'trendChart') {
-                if (trendChart) trendChart.destroy();
-                trendChart = new Chart(ctx, { type: 'line', data: chartData, options: chartOptions });
-            } else if (canvasId === 'modalChart') {
-                if (modalChart) modalChart.destroy();
-                modalChart = new Chart(ctx, { type: 'line', data: chartData, options: chartOptions });
-            }
+            if (trendChart) trendChart.destroy();
+            trendChart = new Chart(ctx, { type: 'line', data: chartData, options: chartOptions });
         }
 
-        function showModal(reasonType) {
-            if (!fullData || !fullData.stage2 || !fullData.stage2.detailedReasoning) return;
-            
-            const reasonData = fullData.stage2.detailedReasoning[reasonType];
-            if (reasonData) {
-                DOM.modalTitle.textContent = reasonData.title;
-                
-                if (reasonType === 'data' && reasonData.chartData) {
-                    DOM.modalBody.innerHTML = reasonData.content;
-                    DOM.modalChartContainer.classList.remove('hidden');
-                    DOM.modalBody.appendChild(DOM.modalChartContainer);
-                    renderChart(reasonData.chartData, 'modalChart');
-                } else {
-                    DOM.modalChartContainer.classList.add('hidden');
-                    DOM.modalBody.innerHTML = reasonData.content;
-                }
-                
-                DOM.modal.classList.add('show');
-            }
+        function showModal(content) {
+            DOM.modalTitle.textContent = "상세 정보";
+            DOM.modalBody.innerHTML = content;
+            DOM.modal.classList.add('show');
         }
 
         function closeModal() {
@@ -540,7 +526,7 @@
             }
         }
 
-        // 전역 함수로 등록 (HTML onclick에서 사용)
+        // 전역 함수로 등록
         window.showModal = showModal;
         window.closeModal = closeModal;
     </script>
