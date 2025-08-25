@@ -9,7 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
     
-    <!-- ❗ [변경] pako.js는 더 이상 필요 없으므로 삭제하고, Firebase SDK를 추가합니다. -->
+    <!-- Firebase SDK v8 -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
@@ -153,26 +153,20 @@
     </div>
 
     <script>
-        // ❗ 중요: 여기에 본인의 Firebase 프로젝트 구성 정보를 붙여넣으세요.
-        const firebaseConfig = {// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
+        // ✅ 수정된 Firebase 설정 - 구문 오류 해결
+        const firebaseConfig = {
+            apiKey: "AIzaSyCig4FGcPx97EmF7rHLbpcONUCqsh54Hjo",
+            authDomain: "trip-dashboard-live.firebaseapp.com",
+            databaseURL: "https://trip-dashboard-live-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "trip-dashboard-live",
+            storageBucket: "trip-dashboard-live.appspot.com",
+            messagingSenderId: "184042935001",
+            appId: "1:184042935001:web:dd5a1ab387ac357223a4c8"
+        };
 
-// Your web app's Firebase configuration
-const firebaseConfig = {
-  apiKey: "AIzaSyCig4FGcPx97EmF7rHLbpcONUCqsh54Hjo",
-  authDomain: "trip-dashboard-live.firebaseapp.com",
-  databaseURL: "https://trip-dashboard-live-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "trip-dashboard-live",
-  storageBucket: "trip-dashboard-live.appspot.com",
-  messagingSenderId: "184042935001",
-  appId: "1:184042935001:web:dd5a1ab387ac357223a4c8"
-};
-
-// Firebase 앱 초기화 (v8 방식으로 통일)
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
+        // Firebase 앱 초기화 (v8 방식)
+        firebase.initializeApp(firebaseConfig);
+        const database = firebase.database();
         
         let fullData = null;
         let modalChart;
@@ -184,28 +178,38 @@ const database = firebase.database();
             modalContent: document.getElementById('modal-body'),
         };
 
-        // --- ❗ [변경] Core Logic: Firebase Realtime Listener ---
+        // Firebase Realtime Listener
         window.onload = function() {
             try {
                 const urlParams = new URLSearchParams(window.location.search);
                 const tripId = urlParams.get('tripId');
 
+                console.log("🔍 추출된 tripId:", tripId); // 디버깅용
+
                 if (!tripId) {
                     throw new Error("URL에 'tripId' 파라미터가 없습니다.");
                 }
 
-                // 해당 tripId의 '우편함'을 실시간으로 구독(감시) 시작
+                console.log(`🔗 Firebase 경로 연결 시도: trips/${tripId}`); // 디버깅용
+
+                // 해당 tripId의 데이터를 실시간으로 구독
                 const tripRef = database.ref(`trips/${tripId}`);
+                
                 tripRef.on('value', (snapshot) => {
                     const data = snapshot.val();
+                    
+                    console.log("📊 Firebase에서 받은 데이터:", data); // 디버깅용
                     
                     if (!data) {
                         throw new Error("Trip 정보를 찾을 수 없습니다.");
                     }
 
                     console.log("📬 새로운 데이터 수신:", data);
-                    fullData = data; // 전역 변수에 데이터 저장
-                    renderUI(); // 데이터가 변경될 때마다 UI를 다시 그림
+                    fullData = data;
+                    renderUI();
+                }, (error) => {
+                    console.error("Firebase 리스너 오류:", error);
+                    throw error;
                 });
 
             } catch (error) {
@@ -221,38 +225,49 @@ const database = firebase.database();
         };
 
         function renderUI() {
-            if (!fullData) return;
+            if (!fullData) {
+                console.log("⚠️ fullData가 없어서 UI 렌더링 건너뜀");
+                return;
+            }
+
+            console.log("🎨 UI 렌더링 시작, fullData:", fullData);
 
             const { stage1, stage2 } = fullData;
+
+            if (!stage1) {
+                console.error("❌ stage1 데이터가 없습니다:", fullData);
+                return;
+            }
 
             let stage2Html = '';
             if (stage2) {
                 // AI 분석 결과가 도착하면 표시할 HTML 생성
                 const analysis = stage2;
-                const firstHit = analysis.first_hit_analysis.first_hit_alarms[0];
-                const recommendation = analysis.recommendations[0];
-                const similarCase = analysis.ai_analysis.track1_system_auto.similar_case;
+                const firstHit = analysis.first_hit_analysis?.first_hit_alarms?.[0];
+                const recommendation = analysis.recommendations?.[0];
 
-                stage2Html = `
-                    <div id="analysis-result" class="info-card bg-white p-5 rounded-xl shadow-md mt-6 slide-up-fade-in" style="animation-delay: 0.3s;">
-                        <h2 class="font-bold text-lg text-blue-800 mb-3"><i class="fas fa-brain mr-2 text-blue-500"></i>AI 최종 분석 결과</h2>
-                        <div class="bg-blue-50 p-4 rounded-lg">
-                            <p class="text-sm text-blue-700 font-semibold">추정 원인</p>
-                            <p class="font-bold text-xl text-blue-900 mt-1">${firstHit.message}</p>
+                if (firstHit && recommendation) {
+                    stage2Html = `
+                        <div id="analysis-result" class="info-card bg-white p-5 rounded-xl shadow-md mt-6 slide-up-fade-in" style="animation-delay: 0.3s;">
+                            <h2 class="font-bold text-lg text-blue-800 mb-3"><i class="fas fa-brain mr-2 text-blue-500"></i>AI 최종 분석 결과</h2>
+                            <div class="bg-blue-50 p-4 rounded-lg">
+                                <p class="text-sm text-blue-700 font-semibold">추정 원인</p>
+                                <p class="font-bold text-xl text-blue-900 mt-1">${firstHit.message}</p>
+                            </div>
+                            <div class="text-center mt-4">
+                                <p class="text-sm text-green-700 font-semibold">종합 신뢰도</p>
+                                <p class="font-black text-5xl text-green-600">${firstHit.final_score}%</p>
+                            </div>
                         </div>
-                        <div class="text-center mt-4">
-                            <p class="text-sm text-green-700 font-semibold">종합 신뢰도</p>
-                            <p class="font-black text-5xl text-green-600">${firstHit.final_score}%</p>
+                        <div class="info-card bg-white p-5 rounded-xl shadow-md mt-6 slide-up-fade-in" style="animation-delay: 0.9s;">
+                            <h2 class="font-bold text-lg text-gray-800 mb-3"><i class="fas fa-wrench mr-2 text-gray-400"></i>권장 조치 1순위</h2>
+                            <div class="bg-gray-50 p-3 rounded-lg">
+                                <p class="text-gray-800 text-sm font-bold">${recommendation.content}</p>
+                                <p class="text-xs text-gray-500 mt-1">${recommendation.title}</p>
+                            </div>
                         </div>
-                    </div>
-                    <div class="info-card bg-white p-5 rounded-xl shadow-md mt-6 slide-up-fade-in" style="animation-delay: 0.9s;">
-                        <h2 class="font-bold text-lg text-gray-800 mb-3"><i class="fas fa-wrench mr-2 text-gray-400"></i>권장 조치 1순위</h2>
-                        <div class="bg-gray-50 p-3 rounded-lg">
-                            <p class="text-gray-800 text-sm font-bold">${recommendation.content}</p>
-                            <p class="text-xs text-gray-500 mt-1">${recommendation.title}</p>
-                        </div>
-                    </div>
-                `;
+                    `;
+                }
             } else {
                 // AI 분석 결과가 아직 없으면 '분석 중' UI 표시
                 stage2Html = `
@@ -287,11 +302,12 @@ const database = firebase.database();
                     ${stage2Html}
                 </div>
             `;
+
+            console.log("✅ UI 렌더링 완료");
         }
         
-        // 모달 관련 함수 (원본 유지)
+        // 모달 관련 함수
         function showModal(reasonType) {
-            // 이 부분은 현재 시나리오에서는 사용되지 않지만, 확장성을 위해 남겨둡니다.
             if (!fullData || !fullData.stage2) return;
             const reasonData = fullData.stage2.detailedReasoning[reasonType];
             if (reasonData) {
@@ -307,5 +323,3 @@ const database = firebase.database();
     </script>
 </body>
 </html>
-
-
