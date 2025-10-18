@@ -491,87 +491,93 @@
         async function renderStage2(stage2) {
             console.log("🎨 Stage2 렌더링:", stage2);
 
-            // 분석 대기 화면 숨기기
             DOM.analysisPlaceholder.style.display = 'none';
-
-            // AI 분석 결과 표시
             DOM.analysisResult.classList.remove('hidden-initial');
 
-            // ✅ 수정: Firebase 데이터 구조에 맞춤
+            // AI 원인 및 신뢰도
             DOM.aiCause.textContent = stage2.aiCause || '분석 중...';
             DOM.aiCauseNarrative.textContent = stage2.aiCauseNarrative || '';
 
-            // 신뢰도 애니메이션
             if (stage2.aiConfidence) {
                 animateScore(stage2.aiConfidence);
             }
 
-            // 판단 근거
+            // ✅ 판단 근거 (클릭 시 모달)
             if (stage2.reasoning && stage2.reasoning.length > 0) {
                 await new Promise(r => setTimeout(r, 600));
                 DOM.aiReasoning.innerHTML = stage2.reasoning.map((item, index) => `
-            <div class="reasoning-item slide-up-fade-in" style="animation-delay: ${index * 0.2}s;">
+            <div class="reasoning-item slide-up-fade-in" 
+                 style="animation-delay: ${index * 0.2}s;"
+                 onclick="showDetailModal('${item.type}')">
                 <i class="${item.icon}"></i>
                 <span>${item.text}</span>
             </div>
         `).join('');
             }
 
-            // Top 3 원인 후보
-            if (stage2.top3 && stage2.top3.length > 0) {
-                await new Promise(r => setTimeout(r, 800));
-                DOM.top5Alarms.classList.remove('hidden-initial');
-                DOM.alarmList.innerHTML = stage2.top3.map((item, index) => `
-            <div class="flex items-center justify-between p-2 rounded-lg ${index === 0 ? 'bg-red-100' : 'bg-gray-50'}">
-                <span class="font-bold ${index === 0 ? 'text-red-800' : 'text-gray-600'}">${item.rank}. ${item.cause}</span>
-                <span class="font-semibold text-xs ${index === 0 ? 'text-red-600' : 'text-gray-400'}">${item.score}점</span>
-            </div>
-        `).join('');
-            }
-
-            // 권장 조치
-            if (stage2.aiAction) {
-                await new Promise(r => setTimeout(r, 600));
-                DOM.recommendation.classList.remove('hidden-initial');
-                DOM.aiAction.textContent = stage2.aiAction;
-                DOM.aiActionNarrative.textContent = stage2.aiActionNarrative || '';
-            }
-
-            // 트렌드 차트
-            if (stage2.chartData && stage2.chartData.datasets && stage2.chartData.datasets.length > 0) {
-                await new Promise(r => setTimeout(r, 600));
-                DOM.trendChartCard.classList.remove('hidden-initial');
-                renderTrendChart(stage2.chartData);
-            }
+            // ❌ 아래 섹션들은 모달에서만 표시되므로 주석 처리
+            // Top 3, 권장 조치, 차트는 판단 근거 클릭 시 모달로 표시
         }
 
-        function animateScore(targetScore) {
-            let currentScore = 0;
-            const increment = Math.ceil(targetScore / 30);
-            const interval = setInterval(() => {
-                currentScore += increment;
-                if (currentScore >= targetScore) {
-                    currentScore = targetScore;
-                    clearInterval(interval);
-                }
-                DOM.aiConfidence.textContent = `${currentScore}%`;
-            }, 50);
+        // ✅ 모달 표시 함수
+        function showDetailModal(reasonType) {
+            console.log("📋 모달 열기:", reasonType);
+
+            if (!fullData || !fullData.stage2 || !fullData.stage2.detailedReasoning) {
+                console.error("상세 근거 데이터 없음");
+                return;
+            }
+
+            const detailData = fullData.stage2.detailedReasoning[reasonType];
+
+            if (!detailData) {
+                console.error(`${reasonType} 데이터 없음`);
+                return;
+            }
+
+            // 모달 제목
+            DOM.modalTitle.textContent = detailData.title;
+
+            // 모달 내용
+            DOM.modalBody.innerHTML = detailData.content;
+
+            // 데이터 트렌드인 경우 차트 추가
+            if (reasonType === 'data' && detailData.chartData) {
+                DOM.modalChartContainer.classList.remove('hidden');
+                setTimeout(() => {
+                    renderModalChart(detailData.chartData);
+                }, 100);
+            } else {
+                DOM.modalChartContainer.classList.add('hidden');
+            }
+
+            // 모달 표시
+            DOM.modal.classList.add('show');
         }
 
-        function renderTrendChart(trendData) {
-            const ctx = document.getElementById('trendChart').getContext('2d');
+        // ✅ 모달 차트 렌더링
+        function renderModalChart(chartData) {
+            console.log("📊 모달 차트 렌더링:", chartData);
 
-            // trendData 구조에 맞춰 차트 데이터 생성
-            const chartData = {
-                labels: trendData.timePoints || [],
-                datasets: [{
-                    label: '주요 지표',
-                    data: trendData.values || [],
-                    borderColor: '#EF4444',
-                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                    fill: true,
-                    tension: 0.2
-                }]
+            const ctx = document.getElementById('modalChart');
+            if (!ctx) {
+                console.error("modalChart 캔버스를 찾을 수 없음");
+                return;
+            }
+
+            const context = ctx.getContext('2d');
+
+            // labels를 시간 형식으로 변환
+            const formattedData = {
+                labels: chartData.labels.map(timestamp => {
+                    const date = new Date(timestamp);
+                    return date.toLocaleTimeString('ko-KR', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit'
+                    });
+                }),
+                datasets: chartData.datasets
             };
 
             const chartOptions = {
@@ -580,39 +586,71 @@
                 scales: {
                     x: {
                         grid: { display: false },
-                        ticks: { font: { size: 10 } }
+                        ticks: {
+                            font: { size: 10 },
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
                     },
                     y: {
-                        beginAtZero: true,
+                        beginAtZero: false,
                         grid: { color: '#E5E7EB' },
                         ticks: { font: { size: 10 } }
                     }
                 },
                 plugins: {
-                    legend: { display: true, position: 'bottom', labels: { boxWidth: 12, font: { size: 10 } } }
+                    legend: {
+                        display: true,
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 12,
+                            font: { size: 10 }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: function (context) {
+                                return context[0].label;
+                            },
+                            label: function (context) {
+                                return `${context.dataset.label}: ${context.parsed.y.toFixed(2)}`;
+                            }
+                        }
+                    }
                 }
             };
 
-            if (trendChart) trendChart.destroy();
-            trendChart = new Chart(ctx, { type: 'line', data: chartData, options: chartOptions });
+            if (modalChart) {
+                modalChart.destroy();
+            }
+
+            modalChart = new Chart(context, {
+                type: 'line',
+                data: formattedData,
+                options: chartOptions
+            });
+
+            console.log("✅ 모달 차트 렌더링 완료");
         }
 
-        function showModal(content) {
-            DOM.modalTitle.textContent = "상세 정보";
-            DOM.modalBody.innerHTML = content;
-            DOM.modal.classList.add('show');
-        }
-
+        // ✅ 모달 닫기
         function closeModal() {
             DOM.modal.classList.remove('show');
+            DOM.modalChartContainer.classList.add('hidden');
             if (modalChart) {
                 modalChart.destroy();
                 modalChart = null;
             }
         }
 
+        // 메인 차트 렌더링 함수 (사용하지 않으므로 제거 가능)
+        function renderTrendChart(chartData) {
+            // 이 함수는 더 이상 사용하지 않음
+            console.log("⚠️ renderTrendChart는 더 이상 사용되지 않습니다.");
+        }
+
         // 전역 함수로 등록
-        window.showModal = showModal;
+        window.showDetailModal = showDetailModal;
         window.closeModal = closeModal;
     </script>
 </body>
