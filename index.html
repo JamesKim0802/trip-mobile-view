@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -7,36 +8,42 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
-    
+    <script
+        src="https://cdn.jsdelivr.net/npm/chartjs-adapter-date-fns@3.0.0/dist/chartjs-adapter-date-fns.bundle.min.js"></script>
+
     <!-- Firebase SDK v8 -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap');
+
         body {
             font-family: 'Noto Sans KR', sans-serif;
             background-color: #111827;
         }
+
         .mobile-container {
             max-width: 420px;
             min-height: 100vh;
             margin: 0 auto;
             background-color: #F9FAFB;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
         }
+
         .header-card {
             background: linear-gradient(135deg, #DC2626 0%, #991B1B 100%);
             color: white;
             border-bottom-left-radius: 2rem;
             border-bottom-right-radius: 2rem;
         }
+
         .info-card {
             transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
             opacity: 1;
             transform: translateY(0);
         }
+
         .info-card.hidden-initial {
             opacity: 0;
             transform: translateY(20px);
@@ -47,6 +54,7 @@
             margin-bottom: 0;
             overflow: hidden;
         }
+
         .timeline-item::before {
             content: '';
             position: absolute;
@@ -59,9 +67,19 @@
             background-color: #D1D5DB;
             border: 2px solid #F9FAFB;
         }
-        .timeline-item.info::before { background-color: #3B82F6; }
-        .timeline-item.warning::before { background-color: #F59E0B; }
-        .timeline-item.critical::before { background-color: #EF4444; }
+
+        .timeline-item.info::before {
+            background-color: #3B82F6;
+        }
+
+        .timeline-item.warning::before {
+            background-color: #F59E0B;
+        }
+
+        .timeline-item.critical::before {
+            background-color: #EF4444;
+        }
+
         .timeline-item:not(:last-child)::after {
             content: '';
             position: absolute;
@@ -71,21 +89,50 @@
             width: 2px;
             background-color: #E5E7EB;
         }
-        .placeholder-glow { animation: glow 1.5s ease-in-out infinite; }
-        @keyframes glow { 50% { opacity: 0.5; } }
-        .fade-in { animation: fadeIn 0.8s ease-out forwards; }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+
+        .placeholder-glow {
+            animation: glow 1.5s ease-in-out infinite;
         }
+
+        @keyframes glow {
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.8s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
         .slide-up-fade-in {
             opacity: 0;
             animation: slideUpFadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
         }
+
         @keyframes slideUpFadeIn {
-            from { opacity: 0; transform: translateY(30px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
+
         .reasoning-item {
             display: flex;
             align-items: center;
@@ -97,9 +144,15 @@
             cursor: pointer;
             transition: background-color 0.2s;
         }
-        .reasoning-item:hover { background-color: #E5E7EB; }
-        .reasoning-item i { color: #4B5563; }
-        
+
+        .reasoning-item:hover {
+            background-color: #E5E7EB;
+        }
+
+        .reasoning-item i {
+            color: #4B5563;
+        }
+
         /* Modal Styles */
         .modal-overlay {
             position: fixed;
@@ -116,7 +169,12 @@
             visibility: hidden;
             transition: opacity 0.3s ease;
         }
-        .modal-overlay.show { opacity: 1; visibility: visible; }
+
+        .modal-overlay.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
         .modal-content {
             background: white;
             border-radius: 1rem;
@@ -128,17 +186,29 @@
             transform: scale(0.95);
             transition: transform 0.3s ease;
         }
-        .modal-overlay.show .modal-content { transform: scale(1); }
+
+        .modal-overlay.show .modal-content {
+            transform: scale(1);
+        }
 
         .score-animation {
             animation: scoreCounter 1.5s ease-out forwards;
         }
+
         @keyframes scoreCounter {
-            from { transform: scale(0.8); opacity: 0; }
-            to { transform: scale(1); opacity: 1; }
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="mobile-container">
         <div id="content-area" class="p-6 space-y-6">
@@ -161,18 +231,25 @@
                     </div>
                 </div>
 
-                <div class="info-card bg-white p-5 rounded-xl shadow-md mt-6 slide-up-fade-in" style="animation-delay: 0.3s;">
-                    <h2 class="font-bold text-lg text-gray-800 mb-3"><i class="fas fa-user-tie mr-2 text-gray-400"></i>담당자</h2>
+                <div class="info-card bg-white p-5 rounded-xl shadow-md mt-6 slide-up-fade-in"
+                    style="animation-delay: 0.3s;">
+                    <h2 class="font-bold text-lg text-gray-800 mb-3"><i
+                            class="fas fa-user-tie mr-2 text-gray-400"></i>담당자</h2>
                     <p class="text-gray-600 text-sm leading-relaxed" id="personnel">...</p>
                 </div>
 
-                <div class="info-card bg-white p-5 rounded-xl shadow-md mt-6 slide-up-fade-in" style="animation-delay: 0.6s;">
-                    <h2 class="font-bold text-lg text-gray-800 mb-3"><i class="fas fa-file-alt mr-2 text-gray-400"></i>운전자 최초 보고</h2>
-                    <p class="text-gray-600 text-sm leading-relaxed" id="operator-report">상세한 운전자 보고서가 아직 제공되지 않았습니다. 담당자가 추가 정보를 수집 중입니다.</p>
+                <div class="info-card bg-white p-5 rounded-xl shadow-md mt-6 slide-up-fade-in"
+                    style="animation-delay: 0.6s;">
+                    <h2 class="font-bold text-lg text-gray-800 mb-3"><i
+                            class="fas fa-file-alt mr-2 text-gray-400"></i>운전자 최초 보고</h2>
+                    <p class="text-gray-600 text-sm leading-relaxed" id="operator-report">상세한 운전자 보고서가 아직 제공되지 않았습니다.
+                        담당자가 추가 정보를 수집 중입니다.</p>
                 </div>
 
-                <div class="info-card bg-white p-5 rounded-xl shadow-md mt-6 slide-up-fade-in" style="animation-delay: 0.9s;">
-                    <h2 class="font-bold text-lg text-gray-800 mb-4"><i class="fas fa-history mr-2 text-gray-400"></i>핵심 이벤트 타임라인</h2>
+                <div class="info-card bg-white p-5 rounded-xl shadow-md mt-6 slide-up-fade-in"
+                    style="animation-delay: 0.9s;">
+                    <h2 class="font-bold text-lg text-gray-800 mb-4"><i class="fas fa-history mr-2 text-gray-400"></i>핵심
+                        이벤트 타임라인</h2>
                     <div class="relative space-y-4 pl-4" id="event-timeline">
                         <p class="text-gray-500 text-sm">상세한 타임라인이 아직 수집되지 않았습니다.</p>
                     </div>
@@ -192,7 +269,8 @@
 
                 <!-- AI 분석 결과 -->
                 <div id="analysis-result" class="info-card bg-white p-5 rounded-xl shadow-md mt-6 hidden-initial">
-                    <h2 class="font-bold text-lg text-blue-800 mb-3"><i class="fas fa-brain mr-2 text-blue-500"></i>AI 최종 분석 결과</h2>
+                    <h2 class="font-bold text-lg text-blue-800 mb-3"><i class="fas fa-brain mr-2 text-blue-500"></i>AI
+                        최종 분석 결과</h2>
                     <div class="bg-blue-50 p-4 rounded-lg">
                         <p class="text-sm text-blue-700 font-semibold">추정 원인</p>
                         <p class="font-bold text-xl text-blue-900 mt-1" id="ai-cause">...</p>
@@ -202,7 +280,7 @@
                         <p class="text-sm text-green-700 font-semibold">종합 신뢰도</p>
                         <p class="font-black text-5xl text-green-600 score-animation" id="ai-confidence">...%</p>
                     </div>
-                    
+
                     <div class="mt-5 border-t pt-4">
                         <h3 class="text-sm font-semibold text-gray-600 mb-2">판단 근거</h3>
                         <div class="space-y-2" id="ai-reasoning">
@@ -213,7 +291,8 @@
 
                 <!-- Top 5 알람 후보 -->
                 <div id="top5-alarms" class="info-card bg-white p-5 rounded-xl shadow-md mt-6 hidden-initial">
-                    <h2 class="font-bold text-lg text-gray-800 mb-3"><i class="fas fa-list-ol mr-2 text-gray-400"></i>First Hit 분석 결과</h2>
+                    <h2 class="font-bold text-lg text-gray-800 mb-3"><i
+                            class="fas fa-list-ol mr-2 text-gray-400"></i>First Hit 분석 결과</h2>
                     <div class="space-y-2 text-sm" id="alarm-list">
                         <!-- 알람 리스트가 여기에 동적으로 추가됩니다 -->
                     </div>
@@ -221,16 +300,18 @@
 
                 <!-- 권장 조치 -->
                 <div id="recommendation" class="info-card bg-white p-5 rounded-xl shadow-md mt-6 hidden-initial">
-                    <h2 class="font-bold text-lg text-gray-800 mb-3"><i class="fas fa-wrench mr-2 text-gray-400"></i>권장 조치 1순위</h2>
+                    <h2 class="font-bold text-lg text-gray-800 mb-3"><i class="fas fa-wrench mr-2 text-gray-400"></i>권장
+                        조치 1순위</h2>
                     <div class="bg-gray-50 p-3 rounded-lg">
                         <p class="text-gray-800 text-sm font-bold" id="ai-action">...</p>
                         <p class="text-xs text-gray-500 mt-1" id="ai-action-narrative">...</p>
                     </div>
                 </div>
-                
+
                 <!-- 트렌드 차트 -->
                 <div id="trend-chart-card" class="info-card bg-white p-5 rounded-xl shadow-md mt-6 hidden-initial">
-                    <h2 class="font-bold text-lg text-gray-800 mb-3"><i class="fas fa-chart-line mr-2 text-gray-400"></i>주요 데이터 트렌드</h2>
+                    <h2 class="font-bold text-lg text-gray-800 mb-3"><i
+                            class="fas fa-chart-line mr-2 text-gray-400"></i>주요 데이터 트렌드</h2>
                     <div class="h-48"><canvas id="trendChart"></canvas></div>
                 </div>
             </div>
@@ -268,7 +349,7 @@
         // Firebase 앱 초기화
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
-        
+
         let fullData = null;
         let trendChart = null;
         let modalChart = null;
@@ -301,7 +382,7 @@
         };
 
         // Firebase 연결 및 데이터 리스너
-        window.onload = function() {
+        window.onload = function () {
             try {
                 const urlParams = new URLSearchParams(window.location.search);
                 const tripId = urlParams.get('tripId');
@@ -315,12 +396,12 @@
                 console.log(`🔗 Firebase 경로 연결 시도: trips/${tripId}`);
 
                 const tripRef = database.ref(`trips/${tripId}`);
-                
+
                 tripRef.on('value', (snapshot) => {
                     const data = snapshot.val();
-                    
+
                     console.log("📊 Firebase에서 받은 데이터:", data);
-                    
+
                     if (!data) {
                         throw new Error("Trip 정보를 찾을 수 없습니다.");
                     }
@@ -387,7 +468,7 @@
 
             // 기본 정보 표시
             DOM.tripTitle.textContent = stage1.summary || 'Trip 발생';
-            DOM.tripTime.textContent = stage1.initialReportTime ? 
+            DOM.tripTime.textContent = stage1.initialReportTime ?
                 new Date(stage1.initialReportTime).toLocaleString('ko-KR') : '시간 정보 없음';
             DOM.personnel.textContent = stage1.personnel || '지정되지 않음';
 
@@ -408,61 +489,61 @@
         }
 
         async function renderStage2(stage2) {
-    console.log("🎨 Stage2 렌더링:", stage2);
+            console.log("🎨 Stage2 렌더링:", stage2);
 
-    // 분석 대기 화면 숨기기
-    DOM.analysisPlaceholder.style.display = 'none';
+            // 분석 대기 화면 숨기기
+            DOM.analysisPlaceholder.style.display = 'none';
 
-    // AI 분석 결과 표시
-    DOM.analysisResult.classList.remove('hidden-initial');
-    
-    // ✅ 수정: Firebase 데이터 구조에 맞춤
-    DOM.aiCause.textContent = stage2.aiCause || '분석 중...';
-    DOM.aiCauseNarrative.textContent = stage2.aiCauseNarrative || '';
-    
-    // 신뢰도 애니메이션
-    if (stage2.aiConfidence) {
-        animateScore(stage2.aiConfidence);
-    }
-    
-    // 판단 근거
-    if (stage2.reasoning && stage2.reasoning.length > 0) {
-        await new Promise(r => setTimeout(r, 600));
-        DOM.aiReasoning.innerHTML = stage2.reasoning.map((item, index) => `
+            // AI 분석 결과 표시
+            DOM.analysisResult.classList.remove('hidden-initial');
+
+            // ✅ 수정: Firebase 데이터 구조에 맞춤
+            DOM.aiCause.textContent = stage2.aiCause || '분석 중...';
+            DOM.aiCauseNarrative.textContent = stage2.aiCauseNarrative || '';
+
+            // 신뢰도 애니메이션
+            if (stage2.aiConfidence) {
+                animateScore(stage2.aiConfidence);
+            }
+
+            // 판단 근거
+            if (stage2.reasoning && stage2.reasoning.length > 0) {
+                await new Promise(r => setTimeout(r, 600));
+                DOM.aiReasoning.innerHTML = stage2.reasoning.map((item, index) => `
             <div class="reasoning-item slide-up-fade-in" style="animation-delay: ${index * 0.2}s;">
                 <i class="${item.icon}"></i>
                 <span>${item.text}</span>
             </div>
         `).join('');
-    }
+            }
 
-    // Top 3 원인 후보
-    if (stage2.top3 && stage2.top3.length > 0) {
-        await new Promise(r => setTimeout(r, 800));
-        DOM.top5Alarms.classList.remove('hidden-initial');
-        DOM.alarmList.innerHTML = stage2.top3.map((item, index) => `
+            // Top 3 원인 후보
+            if (stage2.top3 && stage2.top3.length > 0) {
+                await new Promise(r => setTimeout(r, 800));
+                DOM.top5Alarms.classList.remove('hidden-initial');
+                DOM.alarmList.innerHTML = stage2.top3.map((item, index) => `
             <div class="flex items-center justify-between p-2 rounded-lg ${index === 0 ? 'bg-red-100' : 'bg-gray-50'}">
                 <span class="font-bold ${index === 0 ? 'text-red-800' : 'text-gray-600'}">${item.rank}. ${item.cause}</span>
                 <span class="font-semibold text-xs ${index === 0 ? 'text-red-600' : 'text-gray-400'}">${item.score}점</span>
             </div>
         `).join('');
-    }
+            }
 
-    // 권장 조치
-    if (stage2.aiAction) {
-        await new Promise(r => setTimeout(r, 600));
-        DOM.recommendation.classList.remove('hidden-initial');
-        DOM.aiAction.textContent = stage2.aiAction;
-        DOM.aiActionNarrative.textContent = stage2.aiActionNarrative || '';
-    }
+            // 권장 조치
+            if (stage2.aiAction) {
+                await new Promise(r => setTimeout(r, 600));
+                DOM.recommendation.classList.remove('hidden-initial');
+                DOM.aiAction.textContent = stage2.aiAction;
+                DOM.aiActionNarrative.textContent = stage2.aiActionNarrative || '';
+            }
 
-    // 트렌드 차트
-    if (stage2.chartData && stage2.chartData.datasets && stage2.chartData.datasets.length > 0) {
-        await new Promise(r => setTimeout(r, 600));
-        DOM.trendChartCard.classList.remove('hidden-initial');
-        renderTrendChart(stage2.chartData);
-    }
-}
+            // 트렌드 차트
+            if (stage2.chartData && stage2.chartData.datasets && stage2.chartData.datasets.length > 0) {
+                await new Promise(r => setTimeout(r, 600));
+                DOM.trendChartCard.classList.remove('hidden-initial');
+                renderTrendChart(stage2.chartData);
+            }
+        }
 
         function animateScore(targetScore) {
             let currentScore = 0;
@@ -479,7 +560,7 @@
 
         function renderTrendChart(trendData) {
             const ctx = document.getElementById('trendChart').getContext('2d');
-            
+
             // trendData 구조에 맞춰 차트 데이터 생성
             const chartData = {
                 labels: trendData.timePoints || [],
@@ -501,7 +582,7 @@
                         grid: { display: false },
                         ticks: { font: { size: 10 } }
                     },
-                    y: { 
+                    y: {
                         beginAtZero: true,
                         grid: { color: '#E5E7EB' },
                         ticks: { font: { size: 10 } }
@@ -535,5 +616,5 @@
         window.closeModal = closeModal;
     </script>
 </body>
-</html>
 
+</html>
