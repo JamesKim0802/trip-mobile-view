@@ -326,10 +326,11 @@
                 <button onclick="closeModal()" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
             </div>
             <div id="modal-body" class="text-sm text-gray-700">
-                <!-- 모달 차트를 위한 캔버스 -->
-                <div id="modal-chart-container" class="hidden">
-                    <div class="h-48 mt-4"><canvas id="modalChart"></canvas></div>
-                </div>
+                <!-- 텍스트 내용이 여기에 표시됨 -->
+            </div>
+            <!-- ✨ 차트 컨테이너를 modal-body 밖으로 이동 -->
+            <div id="modal-chart-container" class="hidden">
+                <div class="h-48 mt-4"><canvas id="modalChart"></canvas></div>
             </div>
         </div>
     </div>
@@ -551,21 +552,23 @@
             // 모달 제목
             DOM.modalTitle.textContent = detailData.title || "상세 정보";
 
-            // 모달 내용
+            // 모달 텍스트 내용
             DOM.modalBody.innerHTML = detailData.content || "<p>내용이 없습니다.</p>";
+
+            // ✅ 모달 먼저 표시
+            DOM.modal.classList.add('show');
 
             // 데이터 트렌드인 경우 차트 추가
             if (reasonType === 'data' && detailData.chartData) {
                 DOM.modalChartContainer.classList.remove('hidden');
+
+                // ✅ 모달이 완전히 표시된 후 차트 렌더링
                 setTimeout(() => {
                     renderModalChart(detailData.chartData);
-                }, 100);
+                }, 200);  // 100ms → 200ms로 증가
             } else {
                 DOM.modalChartContainer.classList.add('hidden');
             }
-
-            // 모달 표시
-            DOM.modal.classList.add('show');
         }
 
         // ✅ 모달 차트 렌더링
