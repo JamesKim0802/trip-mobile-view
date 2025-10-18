@@ -408,57 +408,61 @@
         }
 
         async function renderStage2(stage2) {
-            console.log("🎨 Stage2 렌더링:", stage2);
+    console.log("🎨 Stage2 렌더링:", stage2);
 
-            // 분석 대기 화면 숨기기
-            DOM.analysisPlaceholder.style.display = 'none';
+    // 분석 대기 화면 숨기기
+    DOM.analysisPlaceholder.style.display = 'none';
 
-            // AI 분석 결과 표시
-            DOM.analysisResult.classList.remove('hidden-initial');
-            
-            // ✅ 실제 Firebase 데이터 구조에 맞춰 수정
-            const estimatedCause = stage2.heroSection?.estimatedCause;
-            const confidence = stage2.heroSection?.confidence;
+    // AI 분석 결과 표시
+    DOM.analysisResult.classList.remove('hidden-initial');
+    
+    // ✅ 수정: Firebase 데이터 구조에 맞춤
+    DOM.aiCause.textContent = stage2.aiCause || '분석 중...';
+    DOM.aiCauseNarrative.textContent = stage2.aiCauseNarrative || '';
+    
+    // 신뢰도 애니메이션
+    if (stage2.aiConfidence) {
+        animateScore(stage2.aiConfidence);
+    }
+    
+    // 판단 근거
+    if (stage2.reasoning && stage2.reasoning.length > 0) {
+        await new Promise(r => setTimeout(r, 600));
+        DOM.aiReasoning.innerHTML = stage2.reasoning.map((item, index) => `
+            <div class="reasoning-item slide-up-fade-in" style="animation-delay: ${index * 0.2}s;">
+                <i class="${item.icon}"></i>
+                <span>${item.text}</span>
+            </div>
+        `).join('');
+    }
 
-            if (estimatedCause) {
-                DOM.aiCause.textContent = estimatedCause.primaryCause || '분석 중...';
-                DOM.aiCauseNarrative.textContent = estimatedCause.description || '';
-                
-                // 신뢰도 애니메이션
-                if (confidence) {
-                    animateScore(confidence.overall || 0);
-                }
-            }
+    // Top 3 원인 후보
+    if (stage2.top3 && stage2.top3.length > 0) {
+        await new Promise(r => setTimeout(r, 800));
+        DOM.top5Alarms.classList.remove('hidden-initial');
+        DOM.alarmList.innerHTML = stage2.top3.map((item, index) => `
+            <div class="flex items-center justify-between p-2 rounded-lg ${index === 0 ? 'bg-red-100' : 'bg-gray-50'}">
+                <span class="font-bold ${index === 0 ? 'text-red-800' : 'text-gray-600'}">${item.rank}. ${item.cause}</span>
+                <span class="font-semibold text-xs ${index === 0 ? 'text-red-600' : 'text-gray-400'}">${item.score}점</span>
+            </div>
+        `).join('');
+    }
 
-            // First Hit 알람 리스트
-            if (stage2.first_hit_analysis?.first_hit_alarms) {
-                await new Promise(r => setTimeout(r, 800));
-                DOM.top5Alarms.classList.remove('hidden-initial');
-                DOM.alarmList.innerHTML = stage2.first_hit_analysis.first_hit_alarms.map((alarm, index) => `
-                    <div class="flex items-center justify-between p-2 rounded-lg ${index === 0 ? 'bg-red-100' : 'bg-gray-50'}">
-                        <span class="font-bold ${index === 0 ? 'text-red-800' : 'text-gray-600'}">${index + 1}. ${alarm.alarm_description}</span>
-                        <span class="font-semibold text-xs ${index === 0 ? 'text-red-600' : 'text-gray-400'}">${Math.round(alarm.score)}점</span>
-                    </div>
-                `).join('');
-            }
+    // 권장 조치
+    if (stage2.aiAction) {
+        await new Promise(r => setTimeout(r, 600));
+        DOM.recommendation.classList.remove('hidden-initial');
+        DOM.aiAction.textContent = stage2.aiAction;
+        DOM.aiActionNarrative.textContent = stage2.aiActionNarrative || '';
+    }
 
-            // 권장 조치
-            const recommendations = stage2.recommendations;
-            if (recommendations && recommendations.length > 0) {
-                await new Promise(r => setTimeout(r, 600));
-                DOM.recommendation.classList.remove('hidden-initial');
-                const firstRecommendation = recommendations[0];
-                DOM.aiAction.textContent = firstRecommendation.content || '조치 방안을 분석 중입니다...';
-                DOM.aiActionNarrative.textContent = firstRecommendation.title || '';
-            }
-
-            // 트렌드 차트 (만약 있다면)
-            if (stage2.analysisEvidence?.trendData) {
-                await new Promise(r => setTimeout(r, 600));
-                DOM.trendChartCard.classList.remove('hidden-initial');
-                renderTrendChart(stage2.analysisEvidence.trendData);
-            }
-        }
+    // 트렌드 차트
+    if (stage2.chartData && stage2.chartData.datasets && stage2.chartData.datasets.length > 0) {
+        await new Promise(r => setTimeout(r, 600));
+        DOM.trendChartCard.classList.remove('hidden-initial');
+        renderTrendChart(stage2.chartData);
+    }
+}
 
         function animateScore(targetScore) {
             let currentScore = 0;
@@ -532,3 +536,4 @@
     </script>
 </body>
 </html>
+
