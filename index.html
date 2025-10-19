@@ -583,15 +583,8 @@
 
             const ctx = canvas.getContext('2d');
 
-            // labels를 시간 형식으로 변환
-            const formattedLabels = chartData.labels.map(timestamp => {
-                const date = new Date(timestamp);
-                return date.toLocaleTimeString('ko-KR', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit'
-                });
-            });
+            // ✅ X축 레이블을 빈 배열로 (차트만 표시)
+            const formattedLabels = chartData.labels.map(() => '');
 
             // ✅ 각 dataset에 독립된 yAxisID 할당
             const enhancedDatasets = chartData.datasets.map((dataset, index) => {
@@ -599,23 +592,23 @@
 
                 return {
                     ...dataset,
-                    yAxisID: yAxisID  // ✅ 축 ID 추가
+                    yAxisID: yAxisID
                 };
             });
 
             const formattedData = {
-                labels: formattedLabels,
+                labels: formattedLabels,  // ✅ 빈 레이블
                 datasets: enhancedDatasets
             };
 
-            // ✅ 동적으로 Y축 생성
+            // ✅ 동적으로 Y축 생성 (최대 3개까지)
             const yScales = {};
 
             chartData.datasets.forEach((dataset, index) => {
                 const yAxisID = index === 0 ? 'y' : `y${index}`;
                 const isFirst = index === 0;
 
-                // 단위 추출 (괄호 안 텍스트)
+                // 단위 추출
                 const unitMatch = dataset.label.match(/\(([^)]+)\)/);
                 const unit = unitMatch ? unitMatch[1] : '';
 
@@ -625,16 +618,16 @@
                     title: {
                         display: true,
                         text: unit,
-                        font: { size: 9 }
+                        font: { size: 8 }
                     },
                     grid: {
-                        drawOnChartArea: isFirst,  // 첫 번째 축만 그리드 표시
+                        drawOnChartArea: isFirst,
                         color: '#E5E7EB'
                     },
                     ticks: {
-                        font: { size: 9 },
+                        font: { size: 8 },
                         callback: function (value) {
-                            return value.toFixed(2);  // 소수점 2자리
+                            return value.toFixed(2);
                         }
                     }
                 };
@@ -649,28 +642,33 @@
                 },
                 scales: {
                     x: {
-                        grid: { display: false },
-                        ticks: {
-                            font: { size: 9 },
-                            maxRotation: 45,
-                            minRotation: 45
-                        }
+                        display: false  // ✅ X축 완전히 숨김
                     },
-                    ...yScales  // ✅ 동적으로 생성된 Y축들 추가
+                    ...yScales
                 },
                 plugins: {
                     legend: {
                         display: true,
                         position: 'bottom',
                         labels: {
-                            boxWidth: 12,
-                            font: { size: 8 },
-                            padding: 6,
-                            usePointStyle: true  // 선 스타일로 표시
+                            boxWidth: 10,
+                            font: { size: 7 },
+                            padding: 4,
+                            usePointStyle: true
                         }
                     },
                     tooltip: {
+                        enabled: true,
                         callbacks: {
+                            title: function (context) {
+                                // 원본 타임스탬프를 시간으로 변환
+                                const timestamp = chartData.labels[context[0].dataIndex];
+                                const date = new Date(timestamp);
+                                return date.toLocaleTimeString('ko-KR', {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                });
+                            },
                             label: function (context) {
                                 const label = context.dataset.label || '';
                                 const value = context.parsed.y.toFixed(3);
