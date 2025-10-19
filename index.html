@@ -593,14 +593,60 @@
                 });
             });
 
+            // ✅ 각 dataset에 독립된 yAxisID 할당
+            const enhancedDatasets = chartData.datasets.map((dataset, index) => {
+                const yAxisID = index === 0 ? 'y' : `y${index}`;
+
+                return {
+                    ...dataset,
+                    yAxisID: yAxisID  // ✅ 축 ID 추가
+                };
+            });
+
             const formattedData = {
                 labels: formattedLabels,
-                datasets: chartData.datasets
+                datasets: enhancedDatasets
             };
+
+            // ✅ 동적으로 Y축 생성
+            const yScales = {};
+
+            chartData.datasets.forEach((dataset, index) => {
+                const yAxisID = index === 0 ? 'y' : `y${index}`;
+                const isFirst = index === 0;
+
+                // 단위 추출 (괄호 안 텍스트)
+                const unitMatch = dataset.label.match(/\(([^)]+)\)/);
+                const unit = unitMatch ? unitMatch[1] : '';
+
+                yScales[yAxisID] = {
+                    type: 'linear',
+                    position: isFirst ? 'left' : 'right',
+                    title: {
+                        display: true,
+                        text: unit,
+                        font: { size: 9 }
+                    },
+                    grid: {
+                        drawOnChartArea: isFirst,  // 첫 번째 축만 그리드 표시
+                        color: '#E5E7EB'
+                    },
+                    ticks: {
+                        font: { size: 9 },
+                        callback: function (value) {
+                            return value.toFixed(2);  // 소수점 2자리
+                        }
+                    }
+                };
+            });
 
             const chartOptions = {
                 responsive: true,
                 maintainAspectRatio: false,
+                interaction: {
+                    mode: 'index',
+                    intersect: false
+                },
                 scales: {
                     x: {
                         grid: { display: false },
@@ -610,11 +656,7 @@
                             minRotation: 45
                         }
                     },
-                    y: {
-                        beginAtZero: false,
-                        grid: { color: '#E5E7EB' },
-                        ticks: { font: { size: 10 } }
-                    }
+                    ...yScales  // ✅ 동적으로 생성된 Y축들 추가
                 },
                 plugins: {
                     legend: {
@@ -622,15 +664,16 @@
                         position: 'bottom',
                         labels: {
                             boxWidth: 12,
-                            font: { size: 9 },
-                            padding: 8
+                            font: { size: 8 },
+                            padding: 6,
+                            usePointStyle: true  // 선 스타일로 표시
                         }
                     },
                     tooltip: {
                         callbacks: {
                             label: function (context) {
                                 const label = context.dataset.label || '';
-                                const value = context.parsed.y.toFixed(2);
+                                const value = context.parsed.y.toFixed(3);
                                 return `${label}: ${value}`;
                             }
                         }
